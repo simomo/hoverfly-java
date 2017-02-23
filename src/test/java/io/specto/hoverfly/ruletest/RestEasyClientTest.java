@@ -28,7 +28,7 @@ public class RestEasyClientTest {
     }
 
     @Test
-    public void shouldBeAbleToGetABookingUsingApacheHttpClientAndHoverfly() throws IOException {
+    public void shouldBeAbleToGetABookingUsingRestEasyClientAndHoverfly() throws IOException {
 
 
         // Given
