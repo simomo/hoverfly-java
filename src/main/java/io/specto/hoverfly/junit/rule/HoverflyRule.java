@@ -32,10 +32,9 @@ import java.nio.file.Path;
 import static io.specto.hoverfly.junit.core.HoverflyConfig.configs;
 import static io.specto.hoverfly.junit.core.HoverflyMode.CAPTURE;
 import static io.specto.hoverfly.junit.core.HoverflyMode.SIMULATE;
+import static io.specto.hoverfly.junit.core.SimulationSource.empty;
 import static io.specto.hoverfly.junit.core.SimulationSource.file;
-import static io.specto.hoverfly.junit.rule.HoverflyRuleUtils.createTestResourcesHoverflyDirectoryIfNoneExisting;
-import static io.specto.hoverfly.junit.rule.HoverflyRuleUtils.fileRelativeToTestResourcesHoverfly;
-import static io.specto.hoverfly.junit.rule.HoverflyRuleUtils.isAnnotatedWithRule;
+import static io.specto.hoverfly.junit.rule.HoverflyRuleUtils.*;
 
 
 /**
@@ -79,7 +78,7 @@ public class HoverflyRule extends ExternalResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(HoverflyRule.class);
     private final Hoverfly hoverfly;
     private final HoverflyMode hoverflyMode;
-    private final Path capturePath;
+    private Path capturePath;
     private SimulationSource simulationSource;
 
     private HoverflyRule(final SimulationSource simulationSource, final HoverflyConfig hoverflyConfig) {
@@ -96,9 +95,17 @@ public class HoverflyRule extends ExternalResource {
         this.capturePath = capturePath;
     }
 
+    public HoverflyRule(final HoverflyConfig hoverflyConfig) {
+        this.hoverflyMode = CAPTURE;
+        this.hoverfly = new Hoverfly(hoverflyConfig, hoverflyMode);
+        this.simulationSource = null;
+        this.capturePath = null;
+    }
+
     /**
      * Instantiates a rule which runs {@link Hoverfly} in capture mode if
      * recorded file is not present, or in simulation mode if record file is present
+     *
      * @param recordFile the path where captured or simulated traffic is taken. Relative to src/test/resources/hoverfly
      * @return the rule
      */
@@ -109,7 +116,8 @@ public class HoverflyRule extends ExternalResource {
     /**
      * Instantiates a rule which runs {@link Hoverfly} in capture mode if
      * recorded file is not present, or in simulation mode if record file is present
-     * @param recordFile the path where captured or simulated traffic is taken. Relative to src/test/resources/hoverfly
+     *
+     * @param recordFile     the path where captured or simulated traffic is taken. Relative to src/test/resources/hoverfly
      * @param hoverflyConfig the config
      * @return the rule
      */
@@ -176,7 +184,7 @@ public class HoverflyRule extends ExternalResource {
      * @return the rule
      */
     public static HoverflyRule inSimulationMode(final HoverflyConfig hoverflyConfig) {
-        return inSimulationMode(SimulationSource.empty(), hoverflyConfig);
+        return inSimulationMode(empty(), hoverflyConfig);
     }
 
     /**
@@ -225,6 +233,7 @@ public class HoverflyRule extends ExternalResource {
 
     /**
      * Gets started Hoverfly mode
+     *
      * @return the mode.
      */
     public HoverflyMode getHoverflyMode() {
@@ -238,7 +247,7 @@ public class HoverflyRule extends ExternalResource {
      */
     public void simulate(SimulationSource simulationSource) {
         if (simulationSource == null) {
-            simulationSource = SimulationSource.empty();
+            simulationSource = empty();
         }
         this.simulationSource = simulationSource;
         importSimulationSource();
@@ -246,9 +255,31 @@ public class HoverflyRule extends ExternalResource {
 
 
     private void importSimulationSource() {
-        if (hoverflyMode == SIMULATE) {
+        if (hoverfly.getMode() == SIMULATE) {
             hoverfly.importSimulation(simulationSource);
         }
     }
 
+    /**
+     * Stores what's currently been captured in the currently assigned file, wipes the simulation, then starts capture again
+     * ready to store in the new file once complete.
+     * @param recordFile the path where captured or simulated traffic is taken. Relative to src/test/resources/hoverfly
+     */
+    public void capture(final String recordFile) {
+        if (hoverfly.getMode() == CAPTURE) {
+            if (capturePath != null) {
+                hoverfly.exportSimulation(capturePath);
+            }
+            hoverfly.importSimulation(empty());
+            capturePath = fileRelativeToTestResourcesHoverfly(recordFile);
+        }
+    }
+
+    public static HoverflyRule inCaptureMode() {
+        return inCaptureMode(configs());
+    }
+
+    public static HoverflyRule inCaptureMode(HoverflyConfig hoverflyConfig) {
+        return new HoverflyRule(hoverflyConfig);
+    }
 }

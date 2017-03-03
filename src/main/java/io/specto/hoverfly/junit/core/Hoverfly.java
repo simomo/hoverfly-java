@@ -1,13 +1,13 @@
 /**
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this classpath except in compliance with
  * the License. You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
- *
+ * <p>
  * Copyright 2016-2016 SpectoLabs Ltd.
  */
 package io.specto.hoverfly.junit.core;
@@ -37,7 +37,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static io.specto.hoverfly.junit.core.HoverflyConfig.configs;
 import static io.specto.hoverfly.junit.core.HoverflyUtils.checkPortInUse;
@@ -170,6 +176,7 @@ public class Hoverfly implements AutoCloseable {
     }
 
     // TODO: Extract HoverflyClient??
+
     /**
      * Imports a simulation into {@link Hoverfly} from a {@link SimulationSource}
      *
@@ -178,24 +185,23 @@ public class Hoverfly implements AutoCloseable {
     public void importSimulation(SimulationSource simulationSource) {
         LOGGER.info("Importing simulation data to Hoverfly");
 
-        simulationSource.getSimulation().ifPresent((Simulation s) -> {
-            try {
+        final Simulation simulation = simulationSource.getSimulation();
+        try {
 
-                final byte[] jsonContent = OBJECT_MAPPER.writeValueAsBytes(s);
-                RequestBody body = RequestBody.create(JSON, jsonContent);
+            final byte[] jsonContent = OBJECT_MAPPER.writeValueAsBytes(simulation);
+            RequestBody body = RequestBody.create(JSON, jsonContent);
 
-                final Request.Builder builder = createRequestBuilderWithUrl(SIMULATION_PATH);
-                final Request request = builder.put(body).build();
+            final Request.Builder builder = createRequestBuilderWithUrl(SIMULATION_PATH);
+            final Request request = builder.put(body).build();
 
-                final Call call = client.newCall(request);
-                try (final Response response = call.execute()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-                }
-            } catch (IOException e) {
-                LOGGER.error("Failed to import simulation data", e);
-               throw new IllegalArgumentException(e);
+            final Call call = client.newCall(request);
+            try (final Response response = call.execute()) {
+                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
             }
-        });
+        } catch (IOException e) {
+            LOGGER.error("Failed to import simulation data", e);
+            throw new IllegalArgumentException(e);
+        }
     }
 
     /**
@@ -211,6 +217,9 @@ public class Hoverfly implements AutoCloseable {
      * @param path the path on the filesystem to where the simulation should be stored
      */
     public void exportSimulation(Path path) {
+
+        if (path == null) return;
+
         LOGGER.info("Exporting simulation data from Hoverfly");
         try {
             Files.deleteIfExists(path);
@@ -261,8 +270,8 @@ public class Hoverfly implements AutoCloseable {
      * Returns whether the running Hoverfly is healthy or not
      */
     private boolean isHealthy() {
-            final Request.Builder builder = createRequestBuilderWithUrl(HEALTH_CHECK_PATH);
-            final Request request = builder.get().build();
+        final Request.Builder builder = createRequestBuilderWithUrl(HEALTH_CHECK_PATH);
+        final Request request = builder.get().build();
 
         try {
             final Call call = client.newCall(request);
@@ -348,6 +357,7 @@ public class Hoverfly implements AutoCloseable {
         // TODO: clear system properties, and reset default SslContext?
         tempFileManager.purge();
     }
+
     private Request.Builder createRequestBuilderWithUrl(String path) {
         final Request.Builder builder;
         try {
@@ -368,4 +378,7 @@ public class Hoverfly implements AutoCloseable {
         }
     }
 
+    public HoverflyMode getMode() {
+        return hoverflyMode;
+    }
 }

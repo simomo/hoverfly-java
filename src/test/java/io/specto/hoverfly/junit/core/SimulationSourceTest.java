@@ -52,7 +52,7 @@ public class SimulationSourceTest {
     public void shouldCreateSimulationFromClasspath() throws Exception {
 
         // When
-        Simulation actual = SimulationSource.classpath("test-service.json").getSimulation().get();
+        Simulation actual = SimulationSource.classpath("test-service.json").getSimulation();
 
         // Then
         assertThat(actual).isNotNull();
@@ -63,7 +63,7 @@ public class SimulationSourceTest {
     public void shouldCreateSimulationFromUrl() throws Exception {
 
         // When
-        Simulation actual = SimulationSource.url(url).getSimulation().get();
+        Simulation actual = SimulationSource.url(url).getSimulation();
 
         // Then
         assertThat(actual).isNotNull();
@@ -74,7 +74,7 @@ public class SimulationSourceTest {
     public void shouldCreateSimulationFromUrlString() throws Exception {
 
         // When
-        Simulation actual = SimulationSource.url(url.toString()).getSimulation().get();
+        Simulation actual = SimulationSource.url(url.toString()).getSimulation();
 
         // Then
         assertThat(actual).isNotNull();
@@ -88,7 +88,7 @@ public class SimulationSourceTest {
         SimulationSource simulationSource = SimulationSource.dsl(
                 service("www.test-service.com").get("/foo").willReturn(success()));
 
-        Simulation actual = simulationSource.getSimulation().get();
+        Simulation actual = simulationSource.getSimulation();
 
         // Then
         Set<RequestResponsePair> pairs = actual.getHoverflyData().getPairs();
@@ -104,7 +104,7 @@ public class SimulationSourceTest {
     public void shouldCreateSimulationFromFile() throws Exception {
 
         // When
-        Simulation actual = SimulationSource.file(Paths.get("src/test/resources", "test-service.json")).getSimulation().get();
+        Simulation actual = SimulationSource.file(Paths.get("src/test/resources", "test-service.json")).getSimulation();
 
         // Then
         assertThat(actual).isNotNull();
@@ -118,7 +118,7 @@ public class SimulationSourceTest {
         Simulation expected = new Simulation(new HoverflyData(emptySet(), new GlobalActions(emptyList())), new HoverflyMetaData());
 
         // When
-        Simulation actual = SimulationSource.simulation(expected).getSimulation().get();
+        Simulation actual = SimulationSource.simulation(expected).getSimulation();
 
         // Then
         assertThat(actual).isEqualTo(expected);
@@ -126,14 +126,14 @@ public class SimulationSourceTest {
 
     @Test
     public void shouldCreateEmptySimulation() throws Exception {
-        assertThat(SimulationSource.empty().getSimulation()).isEmpty();
+        assertThat(SimulationSource.empty().getSimulation());
     }
 
     @Test
     public void shouldThrowExceptionWhenSimulationDataFormatIsNotRecognized() throws Exception {
 
         // When
-        Throwable throwable = catchThrowable(() -> SimulationSource.classpath("test-service-v1.json").getSimulation().get());
+        Throwable throwable = catchThrowable(() -> SimulationSource.classpath("test-service-v1.json").getSimulation());
 
         // Then
         assertThat(throwable)
@@ -146,7 +146,7 @@ public class SimulationSourceTest {
     public void shouldThrowExceptionWhenUrlStringIsInvalid() throws Exception {
 
         // When
-        Throwable throwable = catchThrowable(() -> SimulationSource.url("http://foo.com").getSimulation().get());
+        Throwable throwable = catchThrowable(() -> SimulationSource.url("http://foo.com").getSimulation());
 
         // Then
         assertThat(throwable)
@@ -158,7 +158,7 @@ public class SimulationSourceTest {
     public void shouldThrowExceptionWhenUrlIsInvalid() throws Exception {
 
         // When
-        Throwable throwable = catchThrowable(() -> SimulationSource.url(new URL("http://foo.com")).getSimulation().get());
+        Throwable throwable = catchThrowable(() -> SimulationSource.url(new URL("http://foo.com")).getSimulation());
 
         // Then
         assertThat(throwable)
@@ -170,7 +170,7 @@ public class SimulationSourceTest {
     public void shouldThrowExceptionWhenFilePathIsInvalid() throws Exception {
 
         // When
-        Throwable throwable = catchThrowable(() -> SimulationSource.file(Paths.get("foo")).getSimulation().get());
+        Throwable throwable = catchThrowable(() -> SimulationSource.file(Paths.get("foo")).getSimulation());
 
         // Then
         assertThat(throwable)

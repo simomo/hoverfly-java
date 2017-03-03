@@ -24,6 +24,28 @@ Capture
 
 File is relative to ``src/test/resources/hoverfly``.
 
+Multi-Capture
+-------
+
+.. code-block:: java
+
+    @ClassRule
+    public static HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode();
+
+    public void someTest() {
+        hoverflyRule.capture("firstScenario.json");
+
+        // test
+    }
+
+    public void someTest() {
+        hoverflyRule.capture("someOtherScenario.json");
+
+        // test
+    }
+
+File is relative to ``src/test/resources/hoverfly``.
+
 Capture or Simulate
 -------------------
 

@@ -48,8 +48,14 @@ public class CaptureModeTestWebServer extends AbstractHandler {
         // Declare response status code
         response.setStatus(HttpServletResponse.SC_OK);
 
-        // Write back response
-        response.getWriter().println("<h1>Hello World</h1>");
+        if(request.getPathInfo().equals("/other")) {
+            // Write back response
+            response.getWriter().println("<h1>Hello Other World</h1>");
+        }
+        else {
+            // Write back response
+            response.getWriter().println("<h1>Hello World</h1>");
+        }
 
         // Inform jetty that this request has now been handled
         baseRequest.setHandled(true);

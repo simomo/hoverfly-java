@@ -9,7 +9,9 @@ import io.specto.hoverfly.junit.dsl.StubServiceBuilder;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +38,7 @@ public interface SimulationSource {
     static SimulationSource url(final URL url) {
         return () -> {
             try {
-                return Optional.of(OBJECT_READER.readValue(url));
+                return OBJECT_READER.readValue(url);
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot read simulation", e);
             }
@@ -52,7 +54,7 @@ public interface SimulationSource {
     static SimulationSource url(final String url) {
         return () -> {
             try {
-                return Optional.of(OBJECT_READER.readValue(new URL(url)));
+                return OBJECT_READER.readValue(new URL(url));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot read simulation", e);
             }
@@ -68,7 +70,7 @@ public interface SimulationSource {
     static SimulationSource classpath(final String classpath) {
         return () -> {
             try {
-                return Optional.of(OBJECT_READER.readValue(findResourceOnClasspath(classpath)));
+                return OBJECT_READER.readValue(findResourceOnClasspath(classpath));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot load classpath resource: '" + classpath + "'", e);
             }
@@ -84,7 +86,7 @@ public interface SimulationSource {
     static SimulationSource file(final Path path) {
         return () -> {
             try {
-                return Optional.of(OBJECT_READER.readValue(path.toFile()));
+                return OBJECT_READER.readValue(path.toFile());
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot load file resource: '" + path.toString() + "'", e);
             }
@@ -111,7 +113,7 @@ public interface SimulationSource {
                     .flatMap(List::stream)
                     .collect(toList());
 
-            return Optional.of(new Simulation(new HoverflyData(pairs, new GlobalActions(delaySettings)), new HoverflyMetaData()));
+            return new Simulation(new HoverflyData(pairs, new GlobalActions(delaySettings)), new HoverflyMetaData());
         };
     }
 
@@ -122,7 +124,7 @@ public interface SimulationSource {
      * @return the simulation
      */
     static SimulationSource simulation(final Simulation simulation) {
-        return () -> Optional.of(simulation);
+        return () -> simulation;
     }
 
     /**
@@ -131,8 +133,8 @@ public interface SimulationSource {
      * @return an empty simulation
      */
     static SimulationSource empty() {
-        return Optional::empty;
+        return () -> new Simulation(new HoverflyData(new HashSet<>(), new GlobalActions(new ArrayList<>())), new HoverflyMetaData());
     }
 
-    Optional<Simulation> getSimulation();
+    Simulation getSimulation();
 }

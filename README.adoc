@@ -67,10 +67,12 @@ public void shouldBeAbleToGetABookingUsingHoverfly() {
     final ResponseEntity<String> getBookingResponse = restTemplate.getForEntity("http://www.my-test.com/api/bookings/1", String.class);
 
     // Then
-    assertThat(getBookingResponse.getStatusCode()).isEqualTo(OK);
-    assertThatJSON(getBookingResponse.getBody()).isEqualTo("{"\"bookingId\":\"1\"}");
+    assertEquals(bookFlightResponse.getStatusCode(), CREATED);
+    assertEquals(bookFlightResponse.getHeaders().getLocation(), "http://localhost/api/bookings/1");
 }
 ```
+
+Full code examples are available https://github.com/SpectoLabs/hoverfly-java/blob/master/src/test/java/io/specto/hoverfly/ruletest/HoverflyRuleDSLTest.java[here^].
 
 == Contributions
 
