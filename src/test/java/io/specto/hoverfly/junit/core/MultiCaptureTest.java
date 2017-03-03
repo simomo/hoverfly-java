@@ -83,5 +83,9 @@ public class MultiCaptureTest {
         JSONAssert.assertEquals(expectedSimulation, thirdActualSimulation, JSONCompareMode.LENIENT);
 
         CaptureModeTestWebServer.terminate();
+
+        Files.deleteIfExists(FIRST_RECORDED_SIMULATION_FILE);
+        Files.deleteIfExists(SECOND_RECORDED_SIMULATION_FILE);
+        Files.deleteIfExists(THIRD_RECORDED_SIMULATION_FILE);
     }
 }
