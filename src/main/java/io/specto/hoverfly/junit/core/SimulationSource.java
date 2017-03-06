@@ -28,6 +28,7 @@ import static java.util.stream.Collectors.toSet;
 public interface SimulationSource {
 
     ObjectReader OBJECT_READER = new ObjectMapper().readerFor(Simulation.class);
+    String HOVERFLY_ROOT = "hoverfly/";
 
     /**
      * Creates a simulation from a URL
@@ -71,6 +72,22 @@ public interface SimulationSource {
         return () -> {
             try {
                 return OBJECT_READER.readValue(findResourceOnClasspath(classpath));
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Cannot load classpath resource: '" + classpath + "'", e);
+            }
+        };
+    }
+
+    /**
+     * Creates a simulation from the classpath, prefixing it with /hoverfly`
+     * @param classpath classpath suffix after 'hoverfly/'
+     * @return the resource
+     */
+    static SimulationSource classpathBelowHoverflyDir(String classpath) {
+        return () -> {
+            try {
+                final String fullClasspath = HOVERFLY_ROOT + classpath;
+                return OBJECT_READER.readValue(findResourceOnClasspath(fullClasspath));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot load classpath resource: '" + classpath + "'", e);
             }
@@ -135,6 +152,7 @@ public interface SimulationSource {
     static SimulationSource empty() {
         return () -> new Simulation(new HoverflyData(new HashSet<>(), new GlobalActions(new ArrayList<>())), new HoverflyMetaData());
     }
+
 
     Simulation getSimulation();
 }

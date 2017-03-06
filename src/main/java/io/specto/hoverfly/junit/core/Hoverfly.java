@@ -21,6 +21,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -236,6 +239,7 @@ public class Hoverfly implements AutoCloseable {
 
     private void persistSimulation(Path path, Simulation simulation) throws IOException {
         final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
+        path.getParent().toFile().mkdirs();
         objectWriter.writeValue(path.toFile(), simulation);
     }
 

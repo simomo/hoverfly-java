@@ -3,6 +3,7 @@ package io.specto.hoverfly.junit.core;
 import com.google.common.io.Resources;
 import io.specto.hoverfly.junit.rule.HoverflyRule;
 import io.specto.hoverfly.webserver.CaptureModeTestWebServer;
+import org.apache.commons.io.FileUtils;
 import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -13,6 +14,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -24,9 +26,9 @@ import static java.nio.charset.Charset.defaultCharset;
 
 public class MultiCaptureTest {
 
-    private static final Path FIRST_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/firstScenario.json");
-    private static final Path SECOND_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/secondScenario.json");
-    private static final Path THIRD_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/thirdScenario.json");
+    private static final Path FIRST_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/first-multi-capture/first-multi-capture-scenario.json");
+    private static final Path SECOND_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/second-multi-capture-scenario.json");
+    private static final Path THIRD_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/third-multi-capture/another/third-multi-capture-scenario.json");
     private static final String EXPECTED_SIMULATION_JSON = "expected-simulation.json";
     private static final String OTHER_EXPECTED_SIMULATION_JSON = "expected-simulation-other.json";
 
@@ -41,28 +43,41 @@ public class MultiCaptureTest {
 
     @Before
     public void setUp() throws Exception {
-        Files.deleteIfExists(FIRST_RECORDED_SIMULATION_FILE);
+
+        // Delete directory and contents
+        final File firstSimulationDirectory = FIRST_RECORDED_SIMULATION_FILE.getParent().toFile();
+        if(firstSimulationDirectory.exists()) {
+            FileUtils.forceDelete(firstSimulationDirectory);
+        }
+
+        // Delete individual file
         Files.deleteIfExists(SECOND_RECORDED_SIMULATION_FILE);
-        Files.deleteIfExists(THIRD_RECORDED_SIMULATION_FILE);
+
+        // Delete directory and contents
+        final File thirdSimulationDirectory = THIRD_RECORDED_SIMULATION_FILE.getParent().toFile();
+        if(thirdSimulationDirectory.exists()) {
+            FileUtils.forceDelete(thirdSimulationDirectory);
+        }
+
         webServerBaseUrl = CaptureModeTestWebServer.run();
     }
 
     @Test
-    public void shouldRecordMultipleScenarios() throws Exception {
+    public void shouldRecordMultipleScenariosInDifferentDirectories() throws Exception {
         // Given
-        hoverflyRule.capture("firstScenario.json");
+        hoverflyRule.capture("first-multi-capture/first-multi-capture-scenario.json");
 
         // When
         restTemplate.getForObject(webServerBaseUrl, String.class);
 
         // Given
-        hoverflyRule.capture("secondScenario.json");
+        hoverflyRule.capture("second-multi-capture-scenario.json");
 
         // When
         restTemplate.getForObject(webServerBaseUrl + "/other", String.class);
 
         // Given
-        hoverflyRule.capture("thirdScenario.json");
+        hoverflyRule.capture("third-multi-capture/another/third-multi-capture-scenario.json");
 
         // When
         restTemplate.getForObject(webServerBaseUrl, String.class);
@@ -83,9 +98,7 @@ public class MultiCaptureTest {
         JSONAssert.assertEquals(expectedSimulation, thirdActualSimulation, JSONCompareMode.LENIENT);
 
         CaptureModeTestWebServer.terminate();
-
-        Files.deleteIfExists(FIRST_RECORDED_SIMULATION_FILE);
-        Files.deleteIfExists(SECOND_RECORDED_SIMULATION_FILE);
-        Files.deleteIfExists(THIRD_RECORDED_SIMULATION_FILE);
     }
+
+
 }

@@ -60,6 +60,17 @@ public class SimulationSourceTest {
     }
 
     @Test
+    public void shouldCreateSimulationFromClasspathRelativeToHoverfly() {
+        // When
+        Simulation actual = SimulationSource.classpathBelowHoverflyDir("test-service-below-hoverfly.json").getSimulation();
+
+        // Then
+        assertThat(actual).isNotNull();
+        assertThat(actual).isEqualTo(EXPECTED);
+    }
+
+
+    @Test
     public void shouldCreateSimulationFromUrl() throws Exception {
 
         // When
