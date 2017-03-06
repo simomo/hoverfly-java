@@ -26,13 +26,13 @@ import java.nio.file.Paths;
  */
 class HoverflyRuleUtils {
 
-    public static final String SRC_TEST_RESOURCES_HOVERFLY = "src/test/resources/hoverfly/";
+    private static final String SRC_TEST_RESOURCES_HOVERFLY = "src/test/resources/hoverfly";
 
     /**
      * Looks for a file in the src/test/resources/hoverfly directory with the given name
      */
     static Path fileRelativeToTestResourcesHoverfly(String fileName) {
-        return Paths.get(SRC_TEST_RESOURCES_HOVERFLY, fileName);
+        return Paths.get(SRC_TEST_RESOURCES_HOVERFLY).resolve(fileName);
     }
 
     /**

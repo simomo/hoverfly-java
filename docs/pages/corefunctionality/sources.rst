@@ -8,7 +8,7 @@ There are a few different potential sources for Simulations:
 .. code-block:: java
 
     SimulationSource.classpath("simulation.json"); //classpath
-    SimulationSource.defaultPath("simulation.json"); //classpath prefixed with /hoverfly
+    SimulationSource.defaultPath("simulation.json"); //default hoverfly resource path which is src/test/resources/hoverfly
     SimulationSource.url("http://www.my-service.com/simulation.json"); // URL
     SimulationSource.url(new URL("http://www.my-service.com/simulation.json")); // URL
     SimulationSource.file(Paths.get("src", "simulation.json")); // File

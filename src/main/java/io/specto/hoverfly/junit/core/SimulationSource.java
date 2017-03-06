@@ -9,6 +9,7 @@ import io.specto.hoverfly.junit.dsl.StubServiceBuilder;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -79,17 +80,17 @@ public interface SimulationSource {
     }
 
     /**
-     * Creates a simulation from the classpath, prefixing it with /hoverfly`
-     * @param classpath classpath suffix after 'hoverfly/'
+     * Creates a simulation from the file located in default hoverfly resource path which is relative to src/test/resources/hoverfly
+     * @param pathString path string relative to the default hoverfly resource path
      * @return the resource
      */
-    static SimulationSource defaultPath(String classpath) {
+    static SimulationSource defaultPath(String pathString) {
         return () -> {
             try {
-                final String fullClasspath = HOVERFLY_ROOT + classpath;
+                final String fullClasspath = HOVERFLY_ROOT + pathString;
                 return OBJECT_READER.readValue(findResourceOnClasspath(fullClasspath));
             } catch (IOException e) {
-                throw new IllegalArgumentException("Cannot load classpath resource: '" + classpath + "'", e);
+                throw new IllegalArgumentException("Cannot load default path resource: '" + pathString + "'", e);
             }
         };
     }
