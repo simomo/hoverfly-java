@@ -63,7 +63,7 @@ public class HoverflyRuleDSLTest {
                         .get("/api/bookings")
                         .willReturn(success())
 
-                        .andDelay(10, TimeUnit.SECONDS).forAll(),
+                        .andDelay(3, TimeUnit.SECONDS).forAll(),
 
                 service("www.other-slow-service.com")
                         .get("/api/bookings")
@@ -72,11 +72,11 @@ public class HoverflyRuleDSLTest {
                         .post("/api/bookings")
                         .willReturn(success())
 
-                        .andDelay(10, TimeUnit.SECONDS).forMethod("POST"),
+                        .andDelay(3, TimeUnit.SECONDS).forMethod("POST"),
 
                 service("www.not-so-slow-service.com")
                         .get("/api/bookings")
-                        .willReturn(success().withDelay(5, TimeUnit.SECONDS))
+                        .willReturn(success().withDelay(1, TimeUnit.SECONDS))
                 )
         );
     }
@@ -161,7 +161,7 @@ public class HoverflyRuleDSLTest {
 
         // Then
         assertThat(bookingResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(TimeUnit.MILLISECONDS.toSeconds(time)).isGreaterThanOrEqualTo(10L);
+        assertThat(TimeUnit.MILLISECONDS.toSeconds(time)).isGreaterThanOrEqualTo(3L);
     }
 
     @Test
@@ -176,7 +176,7 @@ public class HoverflyRuleDSLTest {
 
         // Then
         assertThat(postResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(TimeUnit.MILLISECONDS.toSeconds(postTime)).isGreaterThanOrEqualTo(10L);
+        assertThat(TimeUnit.MILLISECONDS.toSeconds(postTime)).isGreaterThanOrEqualTo(3L);
 
         // When
         stopWatch.reset();
@@ -187,7 +187,7 @@ public class HoverflyRuleDSLTest {
 
         // Then
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(TimeUnit.MILLISECONDS.toSeconds(getTime)).isLessThan(10L);
+        assertThat(TimeUnit.MILLISECONDS.toSeconds(getTime)).isLessThan(3L);
     }
 
     @Test
@@ -202,6 +202,6 @@ public class HoverflyRuleDSLTest {
 
         // Then
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(TimeUnit.MILLISECONDS.toSeconds(getTime)).isLessThan(10L).isGreaterThanOrEqualTo(5L);
+        assertThat(TimeUnit.MILLISECONDS.toSeconds(getTime)).isLessThan(3L).isGreaterThanOrEqualTo(1L);
     }
 }
