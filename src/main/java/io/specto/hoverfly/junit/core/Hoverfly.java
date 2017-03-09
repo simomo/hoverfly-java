@@ -12,8 +12,10 @@
  */
 package io.specto.hoverfly.junit.core;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import io.specto.hoverfly.junit.core.model.HoverflyInfo;
 import io.specto.hoverfly.junit.core.model.Simulation;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
@@ -49,6 +51,8 @@ public class Hoverfly implements AutoCloseable {
     private static final int RETRY_BACKOFF_INTERVAL_MS = 100;
     private static final String HEALTH_CHECK_PATH = "/api/stats";
     private static final String SIMULATION_PATH = "/api/v2/simulation";
+    private static final String INFO_PATH = "/api/v2/hoverfly";
+    private static final String DESTINATION_PATH = "/api/v2/hoverfly/destination";
 
     private final HoverflyConfig hoverflyConfig;
     private final HoverflyMode hoverflyMode;
@@ -98,6 +102,10 @@ public class Hoverfly implements AutoCloseable {
 
         waitForHoverflyToBecomeHealthy();
 
+        if (StringUtils.isNotBlank(hoverflyConfig.getDestination())) {
+            setDestination(hoverflyConfig.getDestination());
+        }
+
         if (useDefaultSslCert) {
             sslConfigurer.setTrustStore();
         }
@@ -135,6 +143,7 @@ public class Hoverfly implements AutoCloseable {
             useDefaultSslCert = false;
         }
 
+        // TODO should be set by API, so that remote hoverfly mode can be configured as well
         if (hoverflyMode == HoverflyMode.CAPTURE) {
             commands.add("-capture");
         }
@@ -188,7 +197,7 @@ public class Hoverfly implements AutoCloseable {
     }
 
     /**
-     * Clears Hoverfly instance nn case of running Hoverfly in standalone.
+     * Clears Hoverfly instance in case of running Hoverfly in standalone.
      */
     public void reset() {
         importSimulation(SimulationSource.empty());
@@ -217,12 +226,6 @@ public class Hoverfly implements AutoCloseable {
         }
     }
 
-    private void persistSimulation(Path path, Simulation simulation) throws IOException {
-        final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
-        Files.createDirectories(path.getParent());
-        objectWriter.writeValue(path.toFile(), simulation);
-    }
-
     /**
      * Gets the simulation currently used by the running {@link Hoverfly} instance
      *
@@ -241,6 +244,45 @@ public class Hoverfly implements AutoCloseable {
         }
     }
 
+    /**
+     * Gets configuration information from the running instance of Hoverfly.
+     * @return the hoverfly info object
+     */
+    public HoverflyInfo getHoverflyInfo() {
+        final Request.Builder builder = createRequestBuilderWithUrl(INFO_PATH);
+        final Request request = builder.get().build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+            return OBJECT_MAPPER.readValue(response.body().charStream(), HoverflyInfo.class);
+        } catch (IOException e) {
+            LOGGER.error("Failed to get Hoverfly info", e);
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    /**
+     * Sets a new destination for the running instance of Hoverfly, overwriting the existing destination setting.
+     * @param destination the destination setting to override
+     */
+    public void setDestination(String destination) {
+        try {
+            HoverflyInfo hoverflyInfo = new HoverflyInfo(destination, null, null, null);
+            final byte[] jsonContent = OBJECT_MAPPER.writeValueAsBytes(hoverflyInfo);
+            RequestBody body = RequestBody.create(JSON, jsonContent);
+            final Request.Builder builder = createRequestBuilderWithUrl(DESTINATION_PATH);
+            final Request request = builder.put(body).build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to get Hoverfly info", e);
+            throw new IllegalArgumentException(e);
+        }
+    }
+
 
     /**
      * Gets the validated {@link HoverflyConfig} object used by the current Hoverfly instance
@@ -248,6 +290,20 @@ public class Hoverfly implements AutoCloseable {
      */
     public HoverflyConfig getHoverflyConfig() {
         return hoverflyConfig;
+    }
+
+    /**
+     * Gets the currently activated Hoverfly mode
+     * @return hoverfly mode
+     */
+    public HoverflyMode getMode() {
+        return hoverflyMode;
+    }
+
+    private void persistSimulation(Path path, Simulation simulation) throws IOException {
+        final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
+        Files.createDirectories(path.getParent());
+        objectWriter.writeValue(path.toFile(), simulation);
     }
 
     /**
@@ -329,9 +385,5 @@ public class Hoverfly implements AutoCloseable {
 
             return OBJECT_MAPPER.readValue(response.body().charStream(), Simulation.class);
         }
-    }
-
-    public HoverflyMode getMode() {
-        return hoverflyMode;
     }
 }

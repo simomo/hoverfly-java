@@ -8,7 +8,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
@@ -272,6 +271,30 @@ public class HoverflyTest {
 
             assertThat(startedProcess.getProcess().isAlive()).isFalse();
         }
+
+    }
+
+
+    @Test
+    public void shouldBeAbleToGetDestinationConfigValue() throws Exception {
+
+        startDefaultHoverfly();
+
+        String destination = hoverfly.getHoverflyInfo().getDestination();
+
+        assertThat(destination).isEqualTo(".");
+
+    }
+
+    @Test
+    public void shouldBeAbleToSetDestinationConfigValue() throws Exception {
+
+        hoverfly = new Hoverfly(configs().destination("www.test.com"), SIMULATE);
+        hoverfly.start();
+
+        String destination = hoverfly.getHoverflyInfo().getDestination();
+
+        assertThat(destination).isEqualTo("www.test.com");
 
     }
 

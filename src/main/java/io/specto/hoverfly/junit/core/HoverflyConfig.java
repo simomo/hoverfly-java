@@ -24,6 +24,7 @@ public class HoverflyConfig {
     private String host = LOCALHOST;
     private String sslCertificatePath;
     private String sslKeyPath;
+    private String destination;
 
     private HoverflyConfig() {
     }
@@ -171,4 +172,12 @@ public class HoverflyConfig {
         return sslKeyPath;
     }
 
+    public String getDestination() {
+        return destination;
+    }
+
+    public HoverflyConfig destination(String destination) {
+        this.destination = destination;
+        return this;
+    }
 }

@@ -17,3 +17,10 @@ You can also configure Hoverfly to use a remote instance which is already runnin
 
     configs().useRemoteInstance() // localhost
     configs().useRemoteInstance("1.2.3.4") // other host name or address
+
+You can configure Hoverfly to process requests to certain destinations / hostnames
+
+.. code-block:: java
+
+    configs().destination("www.test.com") // only process requests to www.test.com
+    configs().destination("api") // matches destination that contains api, eg. api.test.com
