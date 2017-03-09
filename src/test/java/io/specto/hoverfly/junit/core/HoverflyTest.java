@@ -21,6 +21,7 @@ import javax.net.ssl.SSLContext;
 import java.net.URL;
 
 import static io.specto.hoverfly.junit.core.HoverflyConfig.configs;
+import static io.specto.hoverfly.junit.core.HoverflyMode.CAPTURE;
 import static io.specto.hoverfly.junit.core.HoverflyMode.SIMULATE;
 import static io.specto.hoverfly.junit.core.SimulationSource.classpath;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -126,6 +127,27 @@ public class HoverflyTest {
             assertThat(remoteHoverfly.getSimulation()).isNotNull();
             assertThat(getBookingResponse.getStatusCode()).isEqualTo(OK);
         }
+    }
+
+    // TODO convert to unit test after extracting out HoverflyClient
+    @Test
+    public void shouldBeAbleToSetCaptureModeOnRemoteHoverflyInstance() throws Exception {
+        // Given
+        startDefaultHoverfly();
+
+        try (Hoverfly remoteHoverfly = new Hoverfly(
+                configs().useRemoteInstance()
+                        .adminPort(hoverfly.getHoverflyConfig().getAdminPort())
+                        .proxyPort(hoverfly.getHoverflyConfig().getProxyPort()),
+                CAPTURE)) {
+
+            // When
+            remoteHoverfly.start();
+
+            // Then
+            assertThat(remoteHoverfly.getHoverflyInfo().getMode()).isEqualTo("capture");
+        }
+
     }
 
     @Test
@@ -295,6 +317,19 @@ public class HoverflyTest {
         String destination = hoverfly.getHoverflyInfo().getDestination();
 
         assertThat(destination).isEqualTo("www.test.com");
+
+    }
+
+    @Test
+    public void shouldBeAbleToSetMode() throws Exception {
+
+        startDefaultHoverfly();
+
+        hoverfly.setMode(CAPTURE);
+
+        String mode = hoverfly.getHoverflyInfo().getMode();
+
+        assertThat(mode).isEqualTo("capture");
 
     }
 

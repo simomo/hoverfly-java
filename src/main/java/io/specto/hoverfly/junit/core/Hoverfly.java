@@ -12,7 +12,6 @@
  */
 package io.specto.hoverfly.junit.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import io.specto.hoverfly.junit.core.model.HoverflyInfo;
@@ -53,6 +52,7 @@ public class Hoverfly implements AutoCloseable {
     private static final String SIMULATION_PATH = "/api/v2/simulation";
     private static final String INFO_PATH = "/api/v2/hoverfly";
     private static final String DESTINATION_PATH = "/api/v2/hoverfly/destination";
+    private static final String MODE_PATH = "/api/v2/hoverfly/mode";
 
     private final HoverflyConfig hoverflyConfig;
     private final HoverflyMode hoverflyMode;
@@ -106,6 +106,10 @@ public class Hoverfly implements AutoCloseable {
             setDestination(hoverflyConfig.getDestination());
         }
 
+        if (hoverflyMode == HoverflyMode.CAPTURE) {
+            setMode(hoverflyMode);
+        }
+
         if (useDefaultSslCert) {
             sslConfigurer.setTrustStore();
         }
@@ -141,11 +145,6 @@ public class Hoverfly implements AutoCloseable {
             commands.add("-key");
             commands.add("ca.key");
             useDefaultSslCert = false;
-        }
-
-        // TODO should be set by API, so that remote hoverfly mode can be configured as well
-        if (hoverflyMode == HoverflyMode.CAPTURE) {
-            commands.add("-capture");
         }
 
         try {
@@ -283,6 +282,28 @@ public class Hoverfly implements AutoCloseable {
         }
     }
 
+
+    /**
+     * Changes the mode of the running instance of Hoverfly.
+     * @param mode hoverfly mode to change
+     */
+    public void setMode(HoverflyMode mode) {
+
+        try {
+            HoverflyInfo hoverflyInfo = new HoverflyInfo(null, mode.name().toLowerCase(), null, null);
+            final byte[] jsonContent = OBJECT_MAPPER.writeValueAsBytes(hoverflyInfo);
+            RequestBody body = RequestBody.create(JSON, jsonContent);
+            final Request.Builder builder = createRequestBuilderWithUrl(MODE_PATH);
+            final Request request = builder.put(body).build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to get Hoverfly info", e);
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     /**
      * Gets the validated {@link HoverflyConfig} object used by the current Hoverfly instance
