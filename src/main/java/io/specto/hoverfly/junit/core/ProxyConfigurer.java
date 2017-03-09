@@ -13,21 +13,21 @@ import static io.specto.hoverfly.junit.core.SystemProperty.HTTP_NON_PROXY_HOSTS;
 import static io.specto.hoverfly.junit.core.SystemProperty.HTTP_PROXY_HOST;
 import static io.specto.hoverfly.junit.core.SystemProperty.HTTP_PROXY_PORT;
 
-public class ProxyConfigurer {
+class ProxyConfigurer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProxyConfigurer.class);
 
     private final HoverflyConfig hoverflyConfig;
     private final Map<String, String> originalProxyProperties = new HashMap<>();
 
-    public ProxyConfigurer(HoverflyConfig hoverflyConfig) {
+    ProxyConfigurer(HoverflyConfig hoverflyConfig) {
         this.hoverflyConfig = hoverflyConfig;
     }
 
     /**
      * Configures the JVM system properties to use Hoverfly as a proxy
      */
-    public void setProxySystemProperties() {
+    void setProxySystemProperties() {
         keepOriginalProxyProperties(HTTP_NON_PROXY_HOSTS, HTTP_PROXY_HOST, HTTP_PROXY_PORT, HTTPS_PROXY_HOST, HTTPS_PROXY_PORT);
         LOGGER.info("Setting proxy host to {}", hoverflyConfig.getHost());
         System.setProperty(HTTP_PROXY_HOST, hoverflyConfig.getHost());
@@ -55,7 +55,7 @@ public class ProxyConfigurer {
         System.setProperty(HTTPS_PROXY_PORT, String.valueOf(hoverflyConfig.getProxyPort()));
     }
 
-    public void restoreProxySystemProperties() {
+    void restoreProxySystemProperties() {
         for (Map.Entry<String, String> originalProperty : this.originalProxyProperties.entrySet()) {
             final String property = originalProperty.getKey();
             final String originalValue = originalProperty.getValue();

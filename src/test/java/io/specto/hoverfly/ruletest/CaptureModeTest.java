@@ -8,7 +8,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.web.client.RestTemplate;
@@ -28,9 +27,6 @@ public class CaptureModeTest {
     private static final Path RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/recorded-simulation.json");
     private static final String RECORDED_SIMULATION_JSON = "recorded-simulation.json";
     private static final String EXPECTED_SIMULATION_JSON = "expected-simulation.json";
-
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     // tag::captureModeExample[]
     @Rule

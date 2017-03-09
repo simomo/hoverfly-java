@@ -9,7 +9,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.springframework.web.client.RestTemplate;
@@ -31,9 +30,6 @@ public class MultiCaptureTest {
     private static final Path THIRD_RECORDED_SIMULATION_FILE = Paths.get("src/test/resources/hoverfly/third-multi-capture/another/third-multi-capture-scenario.json");
     private static final String EXPECTED_SIMULATION_JSON = "expected-simulation.json";
     private static final String OTHER_EXPECTED_SIMULATION_JSON = "expected-simulation-other.json";
-
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Rule
     public HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode(configs().proxyLocalHost(true));

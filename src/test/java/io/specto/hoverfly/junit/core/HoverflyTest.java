@@ -8,9 +8,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.mockito.InOrder;
 import org.powermock.reflect.Whitebox;
 import org.springframework.http.ResponseEntity;
@@ -34,9 +32,6 @@ public class HoverflyTest {
     private static final int EXPECTED_PROXY_PORT = 8890;
     private Hoverfly hoverfly;
     private ObjectMapper mapper = new ObjectMapper();
-
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Test
     public void shouldStartHoverflyOnConfiguredPort() throws Exception {
