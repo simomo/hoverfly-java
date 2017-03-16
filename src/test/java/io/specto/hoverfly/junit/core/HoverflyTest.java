@@ -126,7 +126,7 @@ public class HoverflyTest {
             public boolean matches(final Object argument) {
                 LoggingEvent event = (LoggingEvent) argument;
                 boolean r = event.getLevel().levelStr.equals("WARN") &&
-                        event.getMessage().contains("Your local Hoverfly is already running");
+                        event.getMessage().contains("Local Hoverfly is already running");
                 return r;
             }
         }));

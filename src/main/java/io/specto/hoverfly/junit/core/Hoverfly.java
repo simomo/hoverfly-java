@@ -97,7 +97,7 @@ public class Hoverfly implements AutoCloseable {
         Runtime.getRuntime().addShutdownHook(new Thread(this::close));
 
         if (startedProcess != null) {
-            LOGGER.warn("Your local Hoverfly is already running.");
+            LOGGER.warn("Local Hoverfly is already running.");
             return;
         }
 
