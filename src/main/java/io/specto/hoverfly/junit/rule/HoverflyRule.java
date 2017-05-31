@@ -12,10 +12,9 @@
  */
 package io.specto.hoverfly.junit.rule;
 
-import io.specto.hoverfly.junit.core.Hoverfly;
-import io.specto.hoverfly.junit.core.HoverflyConfig;
-import io.specto.hoverfly.junit.core.HoverflyMode;
-import io.specto.hoverfly.junit.core.SimulationSource;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import io.specto.hoverfly.junit.core.*;
 import io.specto.hoverfly.junit.dsl.HoverflyDsl;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import static io.specto.hoverfly.junit.core.HoverflyConfig.configs;
 import static io.specto.hoverfly.junit.core.HoverflyMode.CAPTURE;
@@ -76,10 +76,13 @@ import static io.specto.hoverfly.junit.rule.HoverflyRuleUtils.*;
 public class HoverflyRule extends ExternalResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HoverflyRule.class);
+    private static final ObjectWriter JSON_PRETTY_PRINTER = new ObjectMapper().writerWithDefaultPrettyPrinter();
+
     private final Hoverfly hoverfly;
     private final HoverflyMode hoverflyMode;
     private Path capturePath;
     private SimulationSource simulationSource;
+    private boolean enableSimulationPrint;
 
     private HoverflyRule(final SimulationSource simulationSource, final HoverflyConfig hoverflyConfig) {
         this.hoverflyMode = SIMULATE;
@@ -152,6 +155,15 @@ public class HoverflyRule extends ExternalResource {
         return new HoverflyRule(fileRelativeToTestResourcesHoverfly(outputFilename), hoverflyConfig);
     }
 
+    public static HoverflyRule inCaptureMode() {
+        return inCaptureMode(configs());
+    }
+
+    public static HoverflyRule inCaptureMode(HoverflyConfig hoverflyConfig) {
+        return new HoverflyRule(hoverflyConfig);
+    }
+
+
     /**
      * Instantiates a rule which runs {@link Hoverfly} in simulate mode
      *
@@ -162,11 +174,9 @@ public class HoverflyRule extends ExternalResource {
         return inSimulationMode(simulationSource, configs());
     }
 
-
     public static HoverflyRule inSimulationMode(final SimulationSource simulationSource, final HoverflyConfig hoverflyConfig) {
         return new HoverflyRule(simulationSource, hoverflyConfig);
     }
-
 
     /**
      * Instantiates a rule which runs {@link Hoverfly} in simulate mode with no data
@@ -206,6 +216,11 @@ public class HoverflyRule extends ExternalResource {
         hoverfly.start();
 
         importSimulationSource();
+
+        if (enableSimulationPrint) {
+            System.out.println("Hoverfly is started with the following simulation: \n"
+                    + JSON_PRETTY_PRINTER.writeValueAsString(simulationSource.getSimulation()));
+        }
     }
 
     /**
@@ -240,6 +255,7 @@ public class HoverflyRule extends ExternalResource {
         return hoverflyMode;
     }
 
+
     /**
      * Changes the Simulation used by {@link Hoverfly}
      *
@@ -251,13 +267,6 @@ public class HoverflyRule extends ExternalResource {
         }
         this.simulationSource = simulationSource;
         importSimulationSource();
-    }
-
-
-    private void importSimulationSource() {
-        if (hoverfly.getMode() == SIMULATE) {
-            hoverfly.importSimulation(simulationSource);
-        }
     }
 
     /**
@@ -275,11 +284,38 @@ public class HoverflyRule extends ExternalResource {
         }
     }
 
-    public static HoverflyRule inCaptureMode() {
-        return inCaptureMode(configs());
+    /**
+     * Get custom Hoverfly header name used by Http client to authenticate with secured Hoverfly proxy
+     * @return the custom Hoverfly authorization header name
+     */
+    public String getAuthHeaderName() {
+        return HoverflyConstants.X_HOVERFLY_AUTHORIZATION;
     }
 
-    public static HoverflyRule inCaptureMode(HoverflyConfig hoverflyConfig) {
-        return new HoverflyRule(hoverflyConfig);
+
+    /**
+     * Get Bearer token used by Http client to authenticate with secured Hoverfly proxy
+     * @return a custom Hoverfly authorization header value
+     */
+    public String getAuthHeaderValue() {
+        Optional<String> authToken = hoverfly.getHoverflyConfig().getAuthToken();
+        return authToken.map(s -> "Bearer " + s).orElse(null);
+    }
+
+    /**
+     * Print the simulation data to console for debugging purpose. This can be set when you are building the HoverflyRule
+     * @return this HoverflyRule
+     */
+    public HoverflyRule printSimulationData() {
+        if (hoverflyMode == SIMULATE) {
+            enableSimulationPrint = true;
+        }
+        return this;
+    }
+
+    private void importSimulationSource() {
+        if (hoverfly.getMode() == SIMULATE) {
+            hoverfly.importSimulation(simulationSource);
+        }
     }
 }

@@ -12,38 +12,42 @@
  */
 package io.specto.hoverfly.junit.dsl;
 
-import io.specto.hoverfly.junit.core.model.RequestMatcher;
+import io.specto.hoverfly.junit.core.model.FieldMatcher;
+import io.specto.hoverfly.junit.core.model.Request;
 import io.specto.hoverfly.junit.core.model.RequestResponsePair;
+import io.specto.hoverfly.junit.dsl.matchers.HoverflyMatchers;
+import io.specto.hoverfly.junit.dsl.matchers.PlainTextFieldMatcher;
+import io.specto.hoverfly.junit.dsl.matchers.RequestFieldMatcher;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static io.specto.hoverfly.junit.core.model.FieldMatcher.blankMatcher;
+import static io.specto.hoverfly.junit.core.model.FieldMatcher.exactlyMatches;
+import static io.specto.hoverfly.junit.core.model.FieldMatcher.wildCardMatches;
+import static io.specto.hoverfly.junit.dsl.matchers.HoverflyMatchers.any;
+import static io.specto.hoverfly.junit.dsl.matchers.HoverflyMatchers.equalsTo;
 import static org.apache.commons.lang3.CharEncoding.UTF_8;
 
 /**
- * A builder for {@link RequestMatcher}
+ * A builder for {@link Request}
  */
 public class RequestMatcherBuilder {
 
-    private static final String TEMPLATE = "template";
-
     private final StubServiceBuilder invoker;
-    private final String method;
-    private final String scheme;
-    private final String destination;
-    private final String path;
-    private final MultivaluedHashMap<String, String> queryParams = new MultivaluedHashMap<>();
+    private final FieldMatcher method;
+    private final FieldMatcher scheme;
+    private final FieldMatcher destination;
+    private final FieldMatcher path;
+    private final MultivaluedHashMap<PlainTextFieldMatcher, PlainTextFieldMatcher> queryPatterns = new MultivaluedHashMap<>();
     private final Map<String, List<String>> headers = new HashMap<>();
-    private String body;
+    private FieldMatcher query = blankMatcher();
+    private FieldMatcher body = blankMatcher();
+    private boolean isFuzzyMatchedQuery;
 
-    private RequestMatcherBuilder(final StubServiceBuilder invoker, final String method, final String scheme, final String destination, final String path) {
+    RequestMatcherBuilder(final StubServiceBuilder invoker, final FieldMatcher method, final FieldMatcher scheme, final FieldMatcher destination, final FieldMatcher path) {
         this.invoker = invoker;
         this.method = method;
         this.scheme = scheme;
@@ -51,29 +55,33 @@ public class RequestMatcherBuilder {
         this.path = path;
     }
 
-    static RequestMatcherBuilder requestMatcherBuilder(final StubServiceBuilder invoker, final String method, final String scheme, final String destination, final String path) {
-        return new RequestMatcherBuilder(invoker, method, scheme, destination, path);
-    }
-
-
     /**
      * Sets the request body
-     * @param body the request body to match on
+     * @param body the request body to match on exactly
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder body(final String body) {
-        this.body = body;
+        this.body = exactlyMatches(body);
         return this;
     }
 
     /**
-     * Sets the request body and the matching content-type header using {@link HttpBodyConverter}
+     * Sets the request body using {@link HttpBodyConverter} to match on exactly
      * @param httpBodyConverter custom http body converter
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder body(HttpBodyConverter httpBodyConverter) {
-        this.body = httpBodyConverter.body();
-        header("Content-Type", httpBodyConverter.contentType());
+        this.body = exactlyMatches(httpBodyConverter.body());
+        return this;
+    }
+
+    public RequestMatcherBuilder body(RequestFieldMatcher matcher) {
+        this.body = matcher.getFieldMatcher();
+        return this;
+    }
+
+    public RequestMatcherBuilder anyBody() {
+        this.body = null;
         return this;
     }
 
@@ -95,9 +103,33 @@ public class RequestMatcherBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder queryParam(final String key, final Object... values) {
-        for(Object value : values) {
-            queryParams.add(key, value.toString());
+        if (values.length == 0 ) {
+            return queryParam(HoverflyMatchers.equalsTo(key), any());
         }
+
+        for(Object value : values) {
+            queryPatterns.add(equalsTo(key), equalsTo(value));
+        }
+        return this;
+    }
+
+    public RequestMatcherBuilder queryParam(final String key, final PlainTextFieldMatcher value) {
+        return queryParam(equalsTo(key), value);
+    }
+
+    public RequestMatcherBuilder queryParam(final PlainTextFieldMatcher key, final String value) {
+        return queryParam(key, equalsTo(value));
+    }
+
+
+    public RequestMatcherBuilder queryParam(final PlainTextFieldMatcher key, final PlainTextFieldMatcher value) {
+        isFuzzyMatchedQuery = true;
+        queryPatterns.add(key, value);
+        return this;
+    }
+
+    public RequestMatcherBuilder anyQueryParams() {
+        query = null;
         return this;
     }
 
@@ -108,17 +140,22 @@ public class RequestMatcherBuilder {
      * @see ResponseBuilder
      */
     public StubServiceBuilder willReturn(final ResponseBuilder responseBuilder) {
-        RequestMatcher requestMatcher = this.build();
+        Request request = this.build();
         return invoker
-                .addRequestResponsePair(new RequestResponsePair(requestMatcher, responseBuilder.build()))
-                .addDelaySetting(requestMatcher, responseBuilder);
+                .addRequestResponsePair(new RequestResponsePair(request, responseBuilder.build()))
+                .addDelaySetting(request, responseBuilder);
     }
 
-    private RequestMatcher build() {
-        String query = queryParams.entrySet().stream()
-                .flatMap(e -> e.getValue().stream().map(v -> encodeUrl(e.getKey()) + "=" + encodeUrl(v)))
-                .collect(Collectors.joining("&"));
-        return new RequestMatcher(path, method, destination, scheme, query, body, headers, TEMPLATE);
+    private Request build() {
+
+        if (!this.queryPatterns.isEmpty()) {
+            String queryPatterns = this.queryPatterns.entrySet().stream()
+                    .flatMap(e -> e.getValue().stream().map(v -> encodeUrl(e.getKey().getPattern()) + "=" + encodeUrl(v.getPattern())))
+                    .collect(Collectors.joining("&"));
+            query = isFuzzyMatchedQuery ? wildCardMatches(queryPatterns) : exactlyMatches(queryPatterns);
+        }
+
+        return new Request(path, method, destination, scheme, query, body, headers);
     }
 
     private String encodeUrl(String str) {
@@ -130,7 +167,7 @@ public class RequestMatcherBuilder {
     }
 
     private static class MultivaluedHashMap<K, V> {
-        private Map<K, List<V>> elements = new HashMap<>();
+        private Map<K, List<V>> elements = new LinkedHashMap<>();
 
         private void add(K key, V value) {
             List<V> values;
@@ -145,6 +182,10 @@ public class RequestMatcherBuilder {
 
         private Set<Map.Entry<K, List<V>>> entrySet() {
             return elements.entrySet();
+        }
+
+        private boolean isEmpty() {
+            return elements.isEmpty();
         }
 
     }

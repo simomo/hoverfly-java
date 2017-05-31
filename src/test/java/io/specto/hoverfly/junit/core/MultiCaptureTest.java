@@ -32,7 +32,7 @@ public class MultiCaptureTest {
     private static final String OTHER_EXPECTED_SIMULATION_JSON = "expected-simulation-other.json";
 
     @Rule
-    public HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode(configs().proxyLocalHost(true));
+    public HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode(configs().proxyLocalHost());
 
     private URI webServerBaseUrl;
     private RestTemplate restTemplate = new RestTemplate();

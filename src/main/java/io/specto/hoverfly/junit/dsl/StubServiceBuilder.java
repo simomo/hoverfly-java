@@ -12,31 +12,25 @@
  */
 package io.specto.hoverfly.junit.dsl;
 
-import io.specto.hoverfly.junit.core.model.DelaySettings;
-import io.specto.hoverfly.junit.core.model.RequestMatcher;
-import io.specto.hoverfly.junit.core.model.RequestResponsePair;
+import io.specto.hoverfly.junit.core.model.*;
+import io.specto.hoverfly.junit.dsl.matchers.PlainTextFieldMatcher;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static io.specto.hoverfly.junit.dsl.RequestMatcherBuilder.requestMatcherBuilder;
+import static io.specto.hoverfly.junit.core.model.FieldMatcher.exactlyMatches;
+import static io.specto.hoverfly.junit.dsl.matchers.HoverflyMatchers.equalsTo;
+
 
 /**
  * Used as part of the DSL for creating a {@link RequestResponsePair} used within a Hoverfly Simulation.  Each builder is locked to a single base URL.
  */
 public class StubServiceBuilder {
 
-    private static final String HTTP = "http";
-    private static final String HTTPS = "https";
     private static final String SEPARATOR = "://";
-    private static final String PATCH = "PATCH";
 
-    private final String destination;
-    private final String scheme;
+    private final FieldMatcher destination;
+    private FieldMatcher scheme;
     private final Set<RequestResponsePair> requestResponsePairs = new HashSet<>();
     private final List<DelaySettings> delaySettings = new ArrayList<>();
 
@@ -46,18 +40,21 @@ public class StubServiceBuilder {
      * @param baseUrl the base URL of the service you are going to simulate
      */
     StubServiceBuilder(String baseUrl) {
-        //TODO null checking
-        if (baseUrl.startsWith(HTTPS + SEPARATOR)) {
-            this.scheme = HTTPS;
-            this.destination = baseUrl.substring(HTTPS.length() + SEPARATOR.length(), baseUrl.length());
-        } else if (baseUrl.startsWith(HTTP + SEPARATOR)) {
-            this.scheme = HTTP;
-            this.destination = baseUrl.substring(HTTP.length() + SEPARATOR.length(), baseUrl.length());
+
+        String[] elements = baseUrl.split(SEPARATOR);
+        if (baseUrl.contains(SEPARATOR)) {
+            this.scheme = exactlyMatches(elements[0]);
+            this.destination = exactlyMatches(elements[1]);
         } else {
-            this.scheme = HTTP;
-            this.destination = baseUrl;
+            this.destination = exactlyMatches(elements[0]);
         }
+
     }
+
+    StubServiceBuilder(PlainTextFieldMatcher matcher) {
+        this.destination = matcher.getFieldMatcher();
+    }
+
 
     /**
      * Creating a GET request matcher
@@ -66,7 +63,11 @@ public class StubServiceBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder get(final String path) {
-        return requestMatcherBuilder(this, "GET", scheme, destination, path);
+        return get(equalsTo(path));
+    }
+
+    public RequestMatcherBuilder get(final PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, exactlyMatches("GET"), scheme, destination, path.getFieldMatcher());
     }
 
     /**
@@ -76,7 +77,11 @@ public class StubServiceBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder delete(final String path) {
-        return requestMatcherBuilder(this, "DELETE", scheme, destination, path);
+        return delete(equalsTo(path));
+    }
+
+    public RequestMatcherBuilder delete(PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, exactlyMatches("DELETE"), scheme, destination, path.getFieldMatcher());
     }
 
     /**
@@ -86,7 +91,12 @@ public class StubServiceBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder put(final String path) {
-        return requestMatcherBuilder(this, "PUT", scheme, destination, path);
+        return put(equalsTo(path));
+    }
+
+
+    public RequestMatcherBuilder put(PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, exactlyMatches("PUT"), scheme, destination, path.getFieldMatcher());
     }
 
     /**
@@ -96,9 +106,12 @@ public class StubServiceBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder post(final String path) {
-        return requestMatcherBuilder(this, "POST", scheme, destination, path);
+        return post(equalsTo(path));
     }
 
+    public RequestMatcherBuilder post(PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, exactlyMatches("POST"), scheme, destination, path.getFieldMatcher());
+    }
 
     /**
      * Creating a PATCH request matcher
@@ -107,7 +120,19 @@ public class StubServiceBuilder {
      * @return the {@link RequestMatcherBuilder} for further customizations
      */
     public RequestMatcherBuilder patch(final String path) {
-        return requestMatcherBuilder(this, "PATCH", scheme, destination, path);
+        return patch(equalsTo(path));
+    }
+
+    public RequestMatcherBuilder patch(PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, exactlyMatches("PATCH"), scheme, destination, path.getFieldMatcher());
+    }
+
+    public RequestMatcherBuilder anyMethod(String path) {
+        return anyMethod(equalsTo(path));
+    }
+
+    public RequestMatcherBuilder anyMethod(PlainTextFieldMatcher path) {
+        return new RequestMatcherBuilder(this, null, scheme, destination, path.getFieldMatcher());
     }
 
     /**
@@ -137,10 +162,10 @@ public class StubServiceBuilder {
      *
      * @return service destination
      */
+    // TODO it needs to support glob pattern
     String getDestination() {
-        return this.destination;
+        return this.destination.getExactMatch();
     }
-
     /**
      * Adds service wide delay settings.
      *
@@ -153,7 +178,7 @@ public class StubServiceBuilder {
     }
 
     /**
-     * Used to initialize {@link io.specto.hoverfly.junit.core.model.GlobalActions}.
+     * Used to initialize {@link GlobalActions}.
      *
      * @return list of {@link DelaySettings}
      */
@@ -167,8 +192,8 @@ public class StubServiceBuilder {
         }
     }
 
-    StubServiceBuilder addDelaySetting(final RequestMatcher requestMatcher, final ResponseBuilder responseBuilder) {
-        responseBuilder.addDelay().to(this).forRequest(requestMatcher);
+    StubServiceBuilder addDelaySetting(final Request request, final ResponseBuilder responseBuilder) {
+        responseBuilder.addDelay().to(this).forRequest(request);
         return this;
     }
 }

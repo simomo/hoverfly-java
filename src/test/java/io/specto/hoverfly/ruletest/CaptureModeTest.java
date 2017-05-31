@@ -30,7 +30,7 @@ public class CaptureModeTest {
 
     // tag::captureModeExample[]
     @Rule
-    public HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode(RECORDED_SIMULATION_JSON, configs().proxyLocalHost(true));
+    public HoverflyRule hoverflyRule = HoverflyRule.inCaptureMode(RECORDED_SIMULATION_JSON, configs().proxyLocalHost());
     // end::captureModeExample[]
 
     private URI webServerBaseUrl;

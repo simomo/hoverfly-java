@@ -40,13 +40,13 @@ public class SslUtils {
         return trustStore;
     }
 
-    private static TrustManager[] createTrustManagers(KeyStore trustStore) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    private static TrustManager[] createTrustManagers(KeyStore trustStore) throws NoSuchAlgorithmException, KeyStoreException {
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
         return tmf.getTrustManagers();
     }
 
-    private static SSLContext createSslContext(TrustManager[] trustManagers) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+    private static SSLContext createSslContext(TrustManager[] trustManagers) throws NoSuchAlgorithmException, KeyManagementException {
         SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(null, trustManagers, new SecureRandom());
         return sslContext;

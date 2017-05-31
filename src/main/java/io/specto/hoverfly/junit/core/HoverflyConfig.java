@@ -12,41 +12,18 @@
  */
 package io.specto.hoverfly.junit.core;
 
-/**
- * Config used to change the settings for {@link Hoverfly}
- */
-public class HoverflyConfig {
-    private static final String LOCALHOST = "localhost";
-    private int proxyPort;
-    private int adminPort;
-    private boolean proxyLocalHost;
-    private boolean remote;
-    private String host = LOCALHOST;
-    private String sslCertificatePath;
-    private String sslKeyPath;
-    private String destination;
 
-    private HoverflyConfig() {
-    }
+/**
+ * Config builder interface for common settings of {@link Hoverfly}
+ */
+public interface HoverflyConfig {
 
     /**
      * New instance
-     *
-     * @return a config
+     * @return a {@link LocalHoverflyConfig} implementation
      */
-    public static HoverflyConfig configs() {
-        return new HoverflyConfig();
-    }
-
-    /**
-     * Sets the proxy port for {@link Hoverfly}
-     *
-     * @param proxyPort the proxy port
-     * @return the {@link HoverflyConfig} for further customizations
-     */
-    public HoverflyConfig proxyPort(int proxyPort) {
-        this.proxyPort = proxyPort;
-        return this;
+    static LocalHoverflyConfig configs() {
+        return new HoverflyConfigBuilder();
     }
 
     /**
@@ -54,130 +31,62 @@ public class HoverflyConfig {
      * @param adminPort the admin port
      * @return the {@link HoverflyConfig} for further customizations
      */
-    public HoverflyConfig adminPort(int adminPort) {
-        this.adminPort = adminPort;
-        return this;
-    }
+    HoverflyConfig adminPort(int adminPort);
+
+    /**
+     * Sets the proxy port for {@link Hoverfly}
+     *
+     * @param proxyPort the proxy port
+     * @return the {@link HoverflyConfig} for further customizations
+     */
+    HoverflyConfig proxyPort(int proxyPort);
+
+    /**
+     * Sets destination filter to what target urls to simulate or capture
+     * @param destination the destination filter
+     * @return the {@link HoverflyConfig} for further customizations
+     */
+    HoverflyConfig destination(String destination);
 
     /**
      * Controls whether we want to proxy localhost.  If false then any request to localhost will not be proxied through {@link Hoverfly}.
-     * @param proxyLocalHost whether to proxy localhost, default to false
      * @return the {@link HoverflyConfig} for further customizations
      */
-    public HoverflyConfig proxyLocalHost(boolean proxyLocalHost) {
-        this.proxyLocalHost = proxyLocalHost;
+    @Deprecated
+    default HoverflyConfig proxyLocalHost(boolean proxyLocalHost) {
+        if (proxyLocalHost) {
+            return proxyLocalHost();
+        }
         return this;
     }
 
     /**
-     * Gets the proxy port {@link Hoverfly} is configured to run on
-     * @return the proxy port
+     * Invoke to enable proxying of localhost requests
+     * By default it is false
+     * @return a config
      */
-    public int getProxyPort() {
-        return proxyPort;
+    HoverflyConfig proxyLocalHost();
+
+
+    /**
+     * Enable remote Hoverfly configurations
+     * @return a {@link RemoteHoverflyConfig} implementation
+     */
+    default RemoteHoverflyConfig remote() {
+        return new RemoteHoverflyConfigBuilder();
     }
 
     /**
-     * Gets the admin port {@link Hoverfly} is configured to run on
-     * @return the admin port
+     * Validate and build {@link HoverflyConfiguration}
+     * @return a validated hoverfly configuration object
      */
-    public int getAdminPort() {
-        return adminPort;
-    }
+    HoverflyConfiguration build();
 
     /**
-     * Whether localhost should be proxied
-     * @return true if proxied
-     */
-    public boolean isProxyLocalHost() {
-        return proxyLocalHost;
-    }
-
-    /**
-     * By calling this it means a remote Hoverfly will be used - not started by Java.  This method will assume the host is localhost.
-     *
+     * Set proxy CA certificate to validate the authenticity of a Hoverfly instance.
+     * If your hoverfly instance is not started with custom CA cert, then this option is not required.
+     * @param proxyCaCert the path for the PEM encoded certificate relative to classpath
      * @return the {@link HoverflyConfig} for further customizations
      */
-    public HoverflyConfig useRemoteInstance() {
-        this.remote = true;
-        return this;
-    }
-
-    /**
-     * By calling this it means a remote Hoverfly will be used - not started by Java
-     *
-     * @param remoteHost the hostname of the remote hoverfly
-     * @return the {@link HoverflyConfig} for further customizations
-     */
-    public HoverflyConfig useRemoteInstance(final String remoteHost) {
-        this.remote = true;
-        this.host = remoteHost;
-        return this;
-    }
-
-    /**
-     * True is a remote Hoverfly should be used
-     *
-     * @return whether it's remote or not
-     */
-    public boolean isRemoteInstance() {
-        return remote;
-    }
-
-    /**
-     * Returns the host for the remote instance of hoverfly
-     *
-     * @return the remote host
-     */
-    public String getHost() {
-        return host;
-    }
-
-    /**
-     * Sets the SSL certificate file for overriding default Hoverfly self-signed certificate
-     * The file can be in any PEM encoded certificate, in .crt or .pem extensions
-     * @param sslCertificatePath certificate file in classpath
-     * @return the {@link HoverflyConfig} for further customizations
-     */
-    public HoverflyConfig sslCertificatePath(String sslCertificatePath) {
-        this.sslCertificatePath = sslCertificatePath;
-        return this;
-    }
-
-
-    /**
-     * Sets the SSL key file for overriding default Hoverfly SSL key
-     * The file can be in any PEM encoded key, in .key or .pem extensions
-     * @param sslKeyPath key file in classpath
-     * @return the {@link HoverflyConfig} for further customizations
-     */
-    public HoverflyConfig sslKeyPath(String sslKeyPath) {
-        this.sslKeyPath = sslKeyPath;
-        return this;
-    }
-
-    /**
-     * Gets the path to SSL certificate
-     * @return the SSL certificate path
-     */
-    public String getSslCertificatePath() {
-        return sslCertificatePath;
-    }
-
-    /**
-     * Gets the path to SSL key
-     * @return the SSL key path
-     */
-    public String getSslKeyPath() {
-        return sslKeyPath;
-    }
-
-    public String getDestination() {
-        return destination;
-    }
-
-    public HoverflyConfig destination(String destination) {
-        this.destination = destination;
-        return this;
-    }
+    HoverflyConfig proxyCaCert(String proxyCaCert);
 }

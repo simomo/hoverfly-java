@@ -105,8 +105,8 @@ public class SimulationSourceTest {
         Set<RequestResponsePair> pairs = actual.getHoverflyData().getPairs();
         assertThat(pairs).hasSize(1);
         RequestResponsePair pair = pairs.iterator().next();
-        assertThat(pair.getRequest().getDestination()).isEqualTo("www.test-service.com");
-        assertThat(pair.getRequest().getPath()).isEqualTo("/foo");
+        assertThat(pair.getRequest().getDestination().getExactMatch()).isEqualTo("www.test-service.com");
+        assertThat(pair.getRequest().getPath().getExactMatch()).isEqualTo("/foo");
         assertThat(pair.getResponse().getStatus()).isEqualTo(200);
 
     }
@@ -144,12 +144,12 @@ public class SimulationSourceTest {
     public void shouldThrowExceptionWhenSimulationDataFormatIsNotRecognized() throws Exception {
 
         // When
-        Throwable throwable = catchThrowable(() -> SimulationSource.classpath("test-service-v1.json").getSimulation());
+        Throwable throwable = catchThrowable(() -> SimulationSource.classpath("simulations/legacy-simulation.json").getSimulation());
 
         // Then
         assertThat(throwable)
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot load classpath resource: 'test-service-v1.json'");
+                .hasMessageContaining("Cannot load classpath resource: 'simulations/legacy-simulation.json'");
 
     }
 

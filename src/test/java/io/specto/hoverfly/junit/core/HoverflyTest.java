@@ -4,6 +4,7 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.Appender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Resources;
+import io.specto.hoverfly.junit.api.HoverflyClient;
 import io.specto.hoverfly.junit.core.model.Simulation;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -11,20 +12,15 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.After;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.powermock.reflect.Whitebox;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 import org.zeroturnaround.exec.StartedProcess;
 
 import javax.net.ssl.SSLContext;
 import java.net.URL;
 
 import static io.specto.hoverfly.junit.core.HoverflyConfig.configs;
-import static io.specto.hoverfly.junit.core.HoverflyMode.CAPTURE;
 import static io.specto.hoverfly.junit.core.HoverflyMode.SIMULATE;
 import static io.specto.hoverfly.junit.core.SimulationSource.classpath;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,60 +117,13 @@ public class HoverflyTest {
         hoverfly.start();
 
         // then
-        verify(mockAppender).doAppend(argThat(new ArgumentMatcher() {
-            @Override
-            public boolean matches(final Object argument) {
-                LoggingEvent event = (LoggingEvent) argument;
-                boolean r = event.getLevel().levelStr.equals("WARN") &&
-                        event.getMessage().contains("Local Hoverfly is already running");
-                return r;
-            }
+        verify(mockAppender).doAppend(argThat(argument -> {
+            LoggingEvent event = (LoggingEvent) argument;
+            return event.getLevel().levelStr.equals("WARN") &&
+                    event.getMessage().contains("Local Hoverfly is already running");
         }));
     }
 
-    @Test
-    public void shouldBeAbleToUseRemoteHoverflyInstance() throws Exception {
-        // Given
-        startDefaultHoverfly();
-
-        try (Hoverfly remoteHoverfly = new Hoverfly(
-                configs().useRemoteInstance()
-                        .adminPort(hoverfly.getHoverflyConfig().getAdminPort())
-                        .proxyPort(hoverfly.getHoverflyConfig().getProxyPort()),
-                SIMULATE)) {
-
-            remoteHoverfly.start();
-            remoteHoverfly.importSimulation(classpath("test-service.json"));
-
-            // When
-            final ResponseEntity<String> getBookingResponse = new RestTemplate().getForEntity("http://www.my-test.com/api/bookings/1", String.class);
-
-            // Then
-            assertThat(remoteHoverfly.getSimulation()).isNotNull();
-            assertThat(getBookingResponse.getStatusCode()).isEqualTo(OK);
-        }
-    }
-
-    // TODO convert to unit test after extracting out HoverflyClient
-    @Test
-    public void shouldBeAbleToSetCaptureModeOnRemoteHoverflyInstance() throws Exception {
-        // Given
-        startDefaultHoverfly();
-
-        try (Hoverfly remoteHoverfly = new Hoverfly(
-                configs().useRemoteInstance()
-                        .adminPort(hoverfly.getHoverflyConfig().getAdminPort())
-                        .proxyPort(hoverfly.getHoverflyConfig().getProxyPort()),
-                CAPTURE)) {
-
-            // When
-            remoteHoverfly.start();
-
-            // Then
-            assertThat(remoteHoverfly.getHoverflyInfo().getMode()).isEqualTo("capture");
-        }
-
-    }
 
     @Test
     public void shouldNotOverrideDefaultTrustManager() throws Exception {
@@ -223,7 +172,7 @@ public class HoverflyTest {
         hoverfly.start();
 
         // Then
-        verify(sslConfigurer).setTrustStore();
+        verify(sslConfigurer).setDefaultSslContext();
     }
 
     @Test
@@ -239,7 +188,27 @@ public class HoverflyTest {
         hoverfly.start();
 
         // Then
-        verify(sslConfigurer, never()).setTrustStore();
+        verify(sslConfigurer, never()).setDefaultSslContext();
+    }
+
+    @Test
+    public void shouldSetSslCertForRemoteInstance() throws Exception {
+
+        hoverfly = new Hoverfly(configs().remote().host("remotehost").proxyCaCert("ssl/ca.crt"), SIMULATE);
+
+        SslConfigurer sslConfigurer = mock(SslConfigurer.class);
+        Whitebox.setInternalState(hoverfly, "sslConfigurer", sslConfigurer);
+
+        HoverflyClient hoverflyClient = mock(HoverflyClient.class);
+        Whitebox.setInternalState(hoverfly, "hoverflyClient", hoverflyClient);
+
+        when(hoverflyClient.getHealth()).thenReturn(true);
+
+        // When
+        hoverfly.start();
+
+        // Then
+        verify(sslConfigurer).setDefaultSslContext("ssl/ca.crt");
     }
 
     @Test
@@ -302,7 +271,7 @@ public class HoverflyTest {
 
     @Test
     public void shouldSetNonProxyHostSystemPropertyToEmptyIfIsProxyLocalHost() throws Exception {
-        hoverfly = new Hoverfly(configs().proxyLocalHost(true), SIMULATE);
+        hoverfly = new Hoverfly(configs().proxyLocalHost(), SIMULATE);
         hoverfly.start();
 
         assertThat(System.getProperty("http.nonProxyHosts")).isEqualTo("");
@@ -319,43 +288,6 @@ public class HoverflyTest {
 
             assertThat(startedProcess.getProcess().isAlive()).isFalse();
         }
-
-    }
-
-
-    @Test
-    public void shouldBeAbleToGetDestinationConfigValue() throws Exception {
-
-        startDefaultHoverfly();
-
-        String destination = hoverfly.getHoverflyInfo().getDestination();
-
-        assertThat(destination).isEqualTo(".");
-
-    }
-
-    @Test
-    public void shouldBeAbleToSetDestinationConfigValue() throws Exception {
-
-        hoverfly = new Hoverfly(configs().destination("www.test.com"), SIMULATE);
-        hoverfly.start();
-
-        String destination = hoverfly.getHoverflyInfo().getDestination();
-
-        assertThat(destination).isEqualTo("www.test.com");
-
-    }
-
-    @Test
-    public void shouldBeAbleToSetMode() throws Exception {
-
-        startDefaultHoverfly();
-
-        hoverfly.setMode(CAPTURE);
-
-        String mode = hoverfly.getHoverflyInfo().getMode();
-
-        assertThat(mode).isEqualTo("capture");
 
     }
 
